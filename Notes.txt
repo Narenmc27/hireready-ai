@@ -1,0 +1,11 @@
+so i am now going to create a project that would help the people who are doing job hunt!
+so my idea is to help them by find the job that suits them because most of them are working in a role that mostly dont suit them, so to solve this i am going to create an website that helps the people to find their desired job in the possible ways! thank you 
+i am going to document everything that i experience in the journey so that i can knew how i worked!
+
+so basically i am learning on my own and using claude so lets hope for best.
+
+1.so 1st we need to a job match analyser.
+Paste job description + your resume
+AI tells you: match score, missing skills, strengths
+
+so on day one i implemented the interface using gradio where user can upload their resume and JD, using those i am using groq api so the AI will compare resume and JD and gives you a match percentage and strengths and what are the things your are missing for this role using that you can find is the job worth or not!
