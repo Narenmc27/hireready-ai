@@ -307,7 +307,7 @@ def learning_roadmap(job_title):
     return weeks_display, resources_display, projects_display
 
 # Build Gradio UI with Tabs
-with gr.Blocks(theme=gr.themes.Soft(), title="HireReady AI") as demo:
+with gr.Blocks(title="HireReady AI") as demo:
 
     gr.Markdown("""
     # 🎯 HireReady AI
@@ -516,4 +516,4 @@ with gr.Blocks(theme=gr.themes.Soft(), title="HireReady AI") as demo:
             )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(server_name="0.0.0.0", server_port=7860, theme=gr.themes.Soft())
