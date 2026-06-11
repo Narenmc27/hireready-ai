@@ -93,3 +93,74 @@ Rewrite the resume to better match this job. Keep all real experience but refram
         ]
     )
     return response.choices[0].message.content
+def generate_interview_questions(job_description):
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": """You are an expert technical interviewer.
+Generate 5 real interview questions for this job.
+Mix of technical and behavioral questions.
+
+Respond in this EXACT format:
+
+Q1: [question]
+Q2: [question]
+Q3: [question]
+Q4: [question]
+Q5: [question]"""
+            },
+            {
+                "role": "user",
+                "content": f"Generate interview questions for this job:\n{job_description}"
+            }
+        ]
+    )
+    return response.choices[0].message.content
+
+
+def evaluate_answer(question, user_answer, job_description):
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": """You are an expert interviewer evaluating a candidate's answer.
+Be honest, constructive and helpful.
+
+Respond in this EXACT format:
+
+SCORE: [number 0-10]
+
+WHAT_WAS_GOOD:
+- [point 1]
+- [point 2]
+
+WHAT_WAS_MISSING:
+- [point 1]
+- [point 2]
+
+PERFECT_ANSWER:
+[Write the ideal answer for this question]
+
+VERDICT: [EXCELLENT / GOOD / NEEDS IMPROVEMENT / POOR]"""
+            },
+            {
+                "role": "user",
+                "content": f"""
+JOB DESCRIPTION:
+{job_description}
+
+INTERVIEW QUESTION:
+{question}
+
+CANDIDATE'S ANSWER:
+{user_answer}
+
+Evaluate this answer.
+"""
+            }
+        ]
+    )
+    return response.choices[0].message.content

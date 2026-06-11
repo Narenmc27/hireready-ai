@@ -1,5 +1,5 @@
 import gradio as gr
-from analyzer import analyze_job_match, optimize_resume
+from analyzer import analyze_job_match, optimize_resume, generate_interview_questions, evaluate_answer
 import PyPDF2
 import io
 
@@ -122,6 +122,89 @@ def optimize(resume_pdf, resume_text, job_description):
 
     return scores_display, keywords_display, optimized_resume, changes_display
 
+# Generate Questions
+def generate_questions(job_description):
+    if not job_description.strip():
+        return "❌ Please provide the job description!", "", "", "", ""
+    
+    result = generate_interview_questions(job_description)
+    
+    questions = []
+    for line in result.split('\n'):
+        if line.startswith("Q") and ":" in line:
+            question = line.split(":", 1)[1].strip()
+            questions.append(question)
+    
+    q1 = questions[0] if len(questions) > 0 else ""
+    q2 = questions[1] if len(questions) > 1 else ""
+    q3 = questions[2] if len(questions) > 2 else ""
+    q4 = questions[3] if len(questions) > 3 else ""
+    q5 = questions[4] if len(questions) > 4 else ""
+    
+    return q1, q2, q3, q4, q5
+
+# Evaluate Answer
+def evaluate(question, user_answer, job_description):
+    if not question.strip():
+        return "❌ Please generate questions first!"
+    if not user_answer.strip():
+        return "❌ Please write your answer!"
+    
+    result = evaluate_answer(question, user_answer, job_description)
+    
+    lines = result.split('\n')
+    score = 0
+    verdict = ""
+    good_points = []
+    missing_points = []
+    perfect_answer = ""
+    parsing = ""
+    
+    for line in lines:
+        if line.startswith("SCORE:"):
+            try:
+                score = int(line.split(":")[1].strip())
+            except:
+                score = 0
+        elif "WHAT_WAS_GOOD:" in line:
+            parsing = "good"
+        elif "WHAT_WAS_MISSING:" in line:
+            parsing = "missing"
+        elif "PERFECT_ANSWER:" in line:
+            parsing = "perfect"
+        elif "VERDICT:" in line:
+            verdict = line.split(":")[1].strip()
+            parsing = ""
+        elif line.startswith("- ") and parsing == "good":
+            good_points.append(f"✅ {line[2:]}")
+        elif line.startswith("- ") and parsing == "missing":
+            missing_points.append(f"❌ {line[2:]}")
+        elif parsing == "perfect" and line.strip():
+            perfect_answer += line + "\n"
+    
+    # Score emoji
+    if score >= 8:
+        score_emoji = "🔥"
+    elif score >= 6:
+        score_emoji = "👍"
+    elif score >= 4:
+        score_emoji = "⚠️"
+    else:
+        score_emoji = "❌"
+    
+    result_display = f"""## {score_emoji} Score: {score}/10 — {verdict}
+
+### ✅ What Was Good:
+{chr(10).join(good_points)}
+
+### ❌ What Was Missing:
+{chr(10).join(missing_points)}
+
+### 💡 Perfect Answer:
+{perfect_answer}
+"""
+    return result_display
+
 # Build Gradio UI with Tabs
 with gr.Blocks(theme=gr.themes.Soft(), title="HireReady AI") as demo:
 
@@ -215,6 +298,63 @@ with gr.Blocks(theme=gr.themes.Soft(), title="HireReady AI") as demo:
                 fn=optimize,
                 inputs=[resume_pdf_2, resume_text_2, job_desc_2],
                 outputs=[scores_output, keywords_output, optimized_resume_output, changes_output]
+            )
+        # Tab 3 — AI Mock Interviewer
+        with gr.Tab("🎤 AI Mock Interviewer"):
+            gr.Markdown("### Practice interviews with AI feedback")
+
+            job_desc_3 = gr.Textbox(
+                label="💼 Job Description",
+                placeholder="Paste the job description here...",
+                lines=5
+            )
+
+            generate_btn = gr.Button("🎯 Generate Interview Questions", 
+                                      variant="primary", size="lg")
+
+            gr.Markdown("---")
+            gr.Markdown("## 📝 Your Interview Questions")
+
+            with gr.Row():
+                with gr.Column():
+                    q1 = gr.Textbox(label="Question 1", interactive=False)
+                    q2 = gr.Textbox(label="Question 2", interactive=False)
+                    q3 = gr.Textbox(label="Question 3", interactive=False)
+                with gr.Column():
+                    q4 = gr.Textbox(label="Question 4", interactive=False)
+                    q5 = gr.Textbox(label="Question 5", interactive=False)
+
+            generate_btn.click(
+                fn=generate_questions,
+                inputs=[job_desc_3],
+                outputs=[q1, q2, q3, q4, q5]
+            )
+
+            gr.Markdown("---")
+            gr.Markdown("## 🎤 Practice Your Answer")
+
+            with gr.Row():
+                with gr.Column():
+                    selected_question = gr.Textbox(
+                        label="Question to Answer",
+                        placeholder="Copy any question from above and paste here...",
+                        lines=3
+                    )
+                    user_answer = gr.Textbox(
+                        label="Your Answer",
+                        placeholder="Type your answer here...",
+                        lines=8
+                    )
+                with gr.Column():
+                    feedback_output = gr.Markdown(label="AI Feedback")
+
+            evaluate_btn = gr.Button("🔍 Evaluate My Answer", 
+                                      variant="primary", size="lg")
+
+            evaluate_btn.click(
+                fn=evaluate,
+                inputs=[selected_question, user_answer, job_desc_3],
+                outputs=[feedback_output]
             )
 
 if __name__ == "__main__":
