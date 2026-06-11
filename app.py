@@ -1,5 +1,5 @@
 import gradio as gr
-from analyzer import analyze_job_match, optimize_resume, generate_interview_questions, evaluate_answer
+from analyzer import analyze_job_match, optimize_resume, generate_interview_questions, evaluate_answer, get_market_intelligence, generate_learning_roadmap
 import PyPDF2
 import io
 
@@ -205,6 +205,107 @@ def evaluate(question, user_answer, job_description):
 """
     return result_display
 
+def market_intelligence(job_title):
+    if not job_title.strip():
+        return "❌ Please enter a job title!", "", "", ""
+    
+    result = get_market_intelligence(job_title)
+    
+    lines = result.split('\n')
+    skills = []
+    companies = []
+    salary = ""
+    tips = []
+    parsing = ""
+    
+    for line in lines:
+        if "TOP_SKILLS:" in line:
+            parsing = "skills"
+        elif "SALARY_RANGE:" in line:
+            parsing = "salary"
+        elif "TOP_COMPANIES:" in line:
+            parsing = "companies"
+        elif "INTERVIEW_TIPS:" in line:
+            parsing = "tips"
+        elif line.startswith("- ") and parsing == "skills":
+            skills.append(f"🔥 {line[2:]}")
+        elif line.startswith("- ") and parsing == "companies":
+            companies.append(f"🏢 {line[2:]}")
+        elif line.startswith("- ") and parsing == "tips":
+            tips.append(f"💡 {line[2:]}")
+        elif parsing == "salary" and line.strip():
+            salary += line + " "
+    
+    skills_display = "\n".join(skills)
+    companies_display = "\n".join(companies)
+    tips_display = "\n".join(tips)
+    
+    return skills_display, salary, companies_display, tips_display
+
+def learning_roadmap(job_title):
+    if not job_title.strip():
+        return "❌ Please enter a job title!", "", "", ""
+    
+    result = generate_learning_roadmap(job_title)
+    
+    lines = result.split('\n')
+    timeline = ""
+    skills_to_learn = []
+    weeks = {"WEEK1": [], "WEEK2": [], "WEEK3": [], "WEEK4": []}
+    resources = []
+    projects = []
+    parsing = ""
+    
+    for line in lines:
+        if line.startswith("TIMELINE:"):
+            timeline = line.split(":")[1].strip()
+        elif "SKILLS_TO_LEARN:" in line:
+            parsing = "skills"
+        elif "WEEK1:" in line:
+            parsing = "WEEK1"
+        elif "WEEK2:" in line:
+            parsing = "WEEK2"
+        elif "WEEK3:" in line:
+            parsing = "WEEK3"
+        elif "WEEK4:" in line:
+            parsing = "WEEK4"
+        elif "RESOURCES:" in line:
+            parsing = "resources"
+        elif "PROJECTS:" in line:
+            parsing = "projects"
+        elif line.startswith("- ") and parsing == "skills":
+            skills_to_learn.append(f"🎯 {line[2:]}")
+        elif line.startswith("- ") and parsing in weeks:
+            weeks[parsing].append(f"📌 {line[2:]}")
+        elif line.startswith("- ") and parsing == "resources":
+            resources.append(f"📚 {line[2:]}")
+        elif line.startswith("- ") and parsing == "projects":
+            projects.append(f"🛠️ {line[2:]}")
+
+    weeks_display = f"""## 🗓️ Your {timeline} Roadmap
+
+### 🎯 Skills You Need to Learn:
+{chr(10).join(skills_to_learn)}
+
+---
+
+### Week 1
+{chr(10).join(weeks['WEEK1'])}
+
+### Week 2
+{chr(10).join(weeks['WEEK2'])}
+
+### Week 3
+{chr(10).join(weeks['WEEK3'])}
+
+### Week 4
+{chr(10).join(weeks['WEEK4'])}
+"""
+    resources_display = "\n".join(resources)
+    projects_display = "\n".join(projects)
+    
+    return weeks_display, resources_display, projects_display
+
 # Build Gradio UI with Tabs
 with gr.Blocks(theme=gr.themes.Soft(), title="HireReady AI") as demo:
 
@@ -355,6 +456,63 @@ with gr.Blocks(theme=gr.themes.Soft(), title="HireReady AI") as demo:
                 fn=evaluate,
                 inputs=[selected_question, user_answer, job_desc_3],
                 outputs=[feedback_output]
+            )
+
+        # Tab 4 — Market Intelligence
+        with gr.Tab("🔍 Market Intelligence"):
+            gr.Markdown("### Real-time job market insights for any role")
+
+            with gr.Row():
+                job_title_input = gr.Textbox(
+                    label="💼 Job Title",
+                    placeholder="e.g. AI Engineer, Data Scientist, ML Engineer...",
+                    scale=4
+                )
+                search_btn = gr.Button("🔍 Search Market", variant="primary", scale=1)
+
+            gr.Markdown("---")
+            gr.Markdown("## 📊 Market Report")
+
+            with gr.Row():
+                with gr.Column():
+                    skills_market_output = gr.Markdown(label="🔥 Top Skills Required")
+                    salary_output = gr.Markdown(label="💰 Salary Range")
+                with gr.Column():
+                    companies_output = gr.Markdown(label="🏢 Top Companies Hiring")
+                    tips_output = gr.Markdown(label="💡 Interview Tips")
+
+            search_btn.click(
+                fn=market_intelligence,
+                inputs=[job_title_input],
+                outputs=[skills_market_output, salary_output, 
+                         companies_output, tips_output]
+            )
+        
+        # Tab 5 — Learning Roadmap
+        with gr.Tab("🗺️ Learning Roadmap"):
+            gr.Markdown("### Get a personalized plan to become job ready")
+
+            roadmap_job_title = gr.Textbox(
+                label="🎯 What job do you want?",
+                placeholder="e.g. AI Engineer, Data Scientist, ML Engineer..."
+            )
+
+            roadmap_btn = gr.Button("🗺️ Generate My Roadmap",
+                                     variant="primary", size="lg")
+            gr.Markdown("---")
+
+            weeks_output = gr.Markdown()
+
+            with gr.Row():
+                with gr.Column():
+                    resources_output = gr.Markdown(label="📚 Resources")
+                with gr.Column():
+                    projects_output = gr.Markdown(label="🛠️ Projects to Build")
+
+            roadmap_btn.click(
+                fn=learning_roadmap,
+                inputs=[roadmap_job_title],
+                outputs=[weeks_output, resources_output, projects_output]
             )
 
 if __name__ == "__main__":
