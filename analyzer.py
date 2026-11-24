@@ -8,7 +8,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def analyze_job_match(resume_text, job_description):
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role": "system",
@@ -53,7 +53,7 @@ Analyze and give me the match report.
     return response.choices[0].message.content
 def optimize_resume(resume_text, job_description):
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role": "system",
@@ -95,7 +95,7 @@ Rewrite the resume to better match this job. Keep all real experience but refram
     return response.choices[0].message.content
 def generate_interview_questions(job_description):
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role": "system",
@@ -122,7 +122,7 @@ Q5: [question]"""
 
 def evaluate_answer(question, user_answer, job_description):
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role": "system",
@@ -196,7 +196,7 @@ INTERVIEW SEARCH:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role": "system",
@@ -241,7 +241,7 @@ INTERVIEW_TIPS:
 
 def generate_learning_roadmap(job_title):
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role": "system",
